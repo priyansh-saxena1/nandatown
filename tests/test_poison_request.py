@@ -37,18 +37,18 @@ def town(tmp_path, clock):
         yield client
 
 
-def profile(max_attempts=3):
+def profile(max_attempts=3, fault="none"):
     p = TestProfile(name="poison", task={**BODY, "kind": "quote",
                                          "expected_total_cents": 3990},
                     roles={"buyer": "buyer", "seller": "seller"},
                     capabilities={"buyer": [], "seller": ["quote.read"]},
-                    fault="none", lease_seconds=LEASE,
+                    fault=fault, lease_seconds=LEASE,
                     evaluator="stage-evaluator").model_dump()
     return {**p, "max_attempts": max_attempts} if max_attempts else p
 
 
-def start(town, max_attempts=3):
-    r = town.post("/runs", json={"profile": profile(max_attempts)},
+def start(town, max_attempts=3, fault="none"):
+    r = town.post("/runs", json={"profile": profile(max_attempts, fault)},
                   headers=ADMIN)
     run = r.json()["run_id"]
     s = {n: {"X-Town-Session": town.post(
@@ -128,6 +128,13 @@ def test_a_refused_request_is_dead_lettered_at_once(town, refusal):
     assert claim(town, run, s["buyer"])["body"] == {
         "request_id": "q-1", "kind": "quote_request", "attempts": 1,
         "last_outcome": refusal}
+
+
+def test_refusing_a_reoffer_of_done_work_changes_nothing(town):
+    run, s = start(town, fault="duplicate_delivery")
+    ack(town, run, s["seller"], claim(town, run, s["seller"]), "processed")
+    ack(town, run, s["seller"], claim(town, run, s["seller"]), "failed")
+    assert claim(town, run, s["buyer"]) is None
 
 
 @pytest.mark.parametrize("how", ["retryable", "failed"])

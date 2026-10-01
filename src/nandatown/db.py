@@ -459,6 +459,11 @@ class TownDB:
         spent = outcome not in ("failed", "rejected")
         if budget is None or (spent and row["attempts"] < budget):
             return
+        if not spent and conn.execute(
+                "SELECT 1 FROM acks WHERE run_id=? AND message_id=? AND"
+                " status IN ('received','processed')", (run_id, message_id),
+        ).fetchone():
+            return  # refusing a re-offer of done work leaves it done
         conn.execute("UPDATE messages SET status='dead' WHERE run_id=?"
                      " AND message_id=?", (run_id, message_id))
         notice = (None if row["sender"] == "town"
