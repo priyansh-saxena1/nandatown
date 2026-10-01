@@ -57,7 +57,7 @@ class QuoteTask(BaseModel):
 
 Fault = Literal[
     "none", "drop_wakeup", "duplicate_delivery", "lost_ack",
-    "crash_after_claim", "context_truncation", "tool_error"
+    "crash_after_claim", "context_truncation", "tool_error", "poison_request"
 ]
 
 

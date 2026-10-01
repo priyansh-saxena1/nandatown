@@ -60,7 +60,8 @@
         "lost_ack",
         "crash_after_claim",
         "context_truncation",
-        "tool_error"
+        "tool_error",
+        "poison_request"
       ],
       "title": "Fault",
       "type": "string"
