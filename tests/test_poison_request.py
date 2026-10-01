@@ -157,3 +157,10 @@ def test_participants_learn_the_budget_when_they_join(town, max_attempts):
     j = town.post(f"/runs/{r['run_id']}/join", json={
         "name": "seller", "token": r["join_tokens"]["seller"]})
     assert j.json()["run"]["max_attempts"] == max_attempts
+
+
+def test_no_participant_can_take_the_town_s_name(town):
+    p = {**profile(), "roles": {"buyer": "buyer", "town": "seller"},
+         "capabilities": {"buyer": [], "town": []}}
+    assert town.post("/runs", json={"profile": p},
+                     headers=ADMIN).status_code == 422

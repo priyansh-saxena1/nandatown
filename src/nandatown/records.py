@@ -13,7 +13,8 @@ import hashlib
 import json
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_serializer
+from pydantic import (BaseModel, ConfigDict, Field, StrictInt, field_validator,
+                      model_serializer)
 
 
 def canonical_json(obj: Any) -> str:
@@ -75,6 +76,14 @@ class TestProfile(BaseModel):
     runtimes: dict[str, str] = {}
     # Deliveries before the town dead-letters a message; None is unbounded.
     max_attempts: Annotated[StrictInt, Field(ge=1)] | None = None
+
+    @field_validator("roles")
+    @classmethod
+    def _town_is_reserved(cls, roles: dict[str, str]) -> dict[str, str]:
+        # Dead-letter notices come from "town"; no participant may claim it.
+        if "town" in roles:
+            raise ValueError("participant name 'town' is reserved")
+        return roles
 
     @model_serializer(mode="wrap")
     def _omit_unset_max_attempts(self, handler) -> dict[str, Any]:
