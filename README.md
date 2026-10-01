@@ -163,6 +163,8 @@ nandatown profiles
 | quote-llm | nothing (tier two baseline) | model-driven participants complete the task through the tool loop |
 | quote-llm-truncation | the agents' context is truncated mid-run | the protocol carries the recovery: rediscover, resend the same identity, reclaim |
 | quote-llm-tool-error | a tool result is lost mid-call | the agent notices the error, retries the tool, and the claimed work survives its lease |
+| quote-poison-request | the seller fails every delivery | at most 3 deliveries (`max_attempts`), then one dead letter and the buyer is told |
+| quote-poison-unbounded | the same, without `max_attempts` | negative control: FAILS on purpose at `custody_ended` |
 
 Delivery semantics, in one paragraph: the coordinator's database is the source of operational truth. Accepted work and the intent to notify are recorded in one transaction. Delivery is at least once, under leases with fencing tokens; an expired fence can never acknowledge. Duplicate delivery is possible by design, and each participant keeps a durable journal so effects apply once. Retrying the same message identity with identical content returns the original acceptance; the same identity with different content is rejected. Notifications are wake-up hints, never the only copy of the work.
 

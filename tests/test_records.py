@@ -66,6 +66,16 @@ def test_profiles_without_a_budget_keep_their_fingerprints():
             if n in MAIN_PROFILE_FINGERPRINTS} == MAIN_PROFILE_FINGERPRINTS
 
 
+def test_the_poison_control_is_the_same_recipe_without_the_budget():
+    from nandatown.profiles import PROFILES
+
+    bounded = PROFILES["quote-poison-request"].model_dump()
+    control = PROFILES["quote-poison-unbounded"].model_dump()
+    assert bounded["max_attempts"] == 3 and "max_attempts" not in control
+    assert {**bounded, "name": "", "max_attempts": 0} == {
+        **control, "name": "", "max_attempts": 0}
+
+
 @pytest.mark.parametrize("value", [0, True, "3", 2.5])
 def test_a_budget_must_be_a_positive_integer(value):
     with pytest.raises(ValidationError):
