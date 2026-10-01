@@ -118,3 +118,42 @@ def test_a_poison_request_is_dead_lettered_and_its_sender_told_once(
     # Ids are idempotency keys: a resend replays and delivers nothing.
     assert send(town, run, s["buyer"]).json()["replay"] is True
     assert claim(town, run, s["seller"]) is None
+
+
+@pytest.mark.parametrize("refusal", ["failed", "rejected"])
+def test_a_refused_request_is_dead_lettered_at_once(town, refusal):
+    run, s = start(town)
+    ack(town, run, s["seller"], claim(town, run, s["seller"]), refusal)
+    assert claim(town, run, s["seller"]) is None
+    assert claim(town, run, s["buyer"])["body"] == {
+        "request_id": "q-1", "kind": "quote_request", "attempts": 1,
+        "last_outcome": refusal}
+
+
+@pytest.mark.parametrize("how", ["retryable", "failed"])
+def test_without_a_budget_nothing_changes(town, clock, how):
+    run, s = start(town, max_attempts=None)
+    if how == "retryable":
+        assert len(fail_deliveries(town, clock, run, s["seller"], how)) == 8
+    else:
+        ack(town, run, s["seller"], claim(town, run, s["seller"]), how)
+    assert claim(town, run, s["buyer"]) is None
+    assert not events(town, run, "message_dead_lettered")
+
+
+def test_a_notice_that_runs_out_is_not_noticed_again(town, clock):
+    run, s = start(town)
+    fail_deliveries(town, clock, run, s["seller"], "retryable")
+    assert len(fail_deliveries(town, clock, run, s["buyer"],
+                               "retryable")) == 3
+    assert [d["detail"]["notice"] is None for d in
+            events(town, run, "message_dead_lettered")] == [False, True]
+
+
+@pytest.mark.parametrize("max_attempts", [3, None])
+def test_participants_learn_the_budget_when_they_join(town, max_attempts):
+    r = town.post("/runs", json={"profile": profile(max_attempts)},
+                  headers=ADMIN).json()
+    j = town.post(f"/runs/{r['run_id']}/join", json={
+        "name": "seller", "token": r["join_tokens"]["seller"]})
+    assert j.json()["run"]["max_attempts"] == max_attempts

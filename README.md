@@ -681,6 +681,11 @@ A seller's `quote_response` body must carry `request_id` equal to the claimed
 request's message id, as the bundled `quote.read` skill and
 `examples/byoa_seller.py` do.
 
+With `max_attempts` set, a message gets at most that many deliveries. When
+the last fails, or the consumer acks `failed` or `rejected`, the town marks it
+dead, records `message_dead_lettered` and sends the sender one `dead_letter`
+from `town`. To retry, use a new message identity.
+
 Agent routes take `X-Town-Session` from join; admin routes take `X-Town-Admin`. Run creation and fault plans are never agent tools. The shared concepts (run plan, agent message, town event, release reference, evidence record) ship as JSON Schemas under `schemas/`, regenerated with `nandatown schemas`. Python is the first implementation, not the protocol.
 
 A request body holding a value Town cannot store as JSON is refused with 422
